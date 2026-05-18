@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC Hashrate Rental · OCEAN · Live Network Data</title>
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="h1">BTC Hashrate Rental · OCEAN Pool · Live Network Data</div>
+    <div class="hsub" id="header-sub">1 PH/s rented · $36/day · mempool.space API · auto-refreshes every 60s</div>
+  </div>
+  <div class="hright">
+    <span class="last-updated" id="last-updated">Fetching live data...</span>
+    <button class="refresh-btn" onclick="fetchAll()">Refresh now</button>
+    <div class="live-pill"><div class="live-dot"></div>Live</div>
+  </div>
+</header>
+
+<!-- Navigation tabs -->
+<nav class="nav-bar" role="navigation" aria-label="Dashboard pages">
+  <button class="nav-tab active" onclick="showPage('live',this)">
+    Live <span class="nav-badge" style="background:var(--green-bg);color:var(--green-text);">●</span>
+  </button>
+  <button class="nav-tab" onclick="showPage('mystats',this)">My Stats</button>
+  <button class="nav-tab" onclick="showPage('ocean',this)">OCEAN</button>
+  <button class="nav-tab" onclick="showPage('hashprice',this)">Hashprice</button>
+  <button class="nav-tab" onclick="showPage('network',this)">Network</button>
+</nav>
+
+<!-- ── Block-found alert banner — shown on all pages when OCEAN finds a block ── -->
+<div id="block-alert-banner" style="display:none;position:sticky;top:48px;z-index:90;
+  background:linear-gradient(90deg,#0d2b0d,#1a4a1a);
+  border-bottom:1px solid #2a6b2a;
+  padding:10px 1.25rem;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;">
+  <span style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#97C459;">
+    <span style="font-size:18px;">⬛</span>
+    <span id="block-alert-text">OCEAN found a block!</span>
+  </span>
+  <button onclick="dismissBlockAlert()" style="background:transparent;border:1px solid #2a6b2a;border-radius:6px;
+    color:#97C459;font-size:11px;padding:3px 10px;cursor:pointer;">Dismiss</button>
+</div>
+
+<main>
+
+<div class="page active" id="page-live">
+
+  <!-- LIVE NETWORK DATA -->
+  <div class="sec-head">Live network data <span style="font-size:12px;color:var(--text3);font-weight:400;">— via mempool.space API</span></div>
+
+  <div class="g4">
+    <div class="met">
+      <div class="live-tag">LIVE</div>
+      <div class="ml">Network hashrate</div>
+      <div class="mv" id="live-hashrate"><span class="loading-shimmer"></span></div>
+      <div class="ms" id="live-hashrate-sub">fetching...</div>
+    </div>
+    <div class="met">
+      <div class="live-tag">LIVE</div>
+      <div class="ml">Current difficulty</div>
+      <div class="mv" id="live-difficulty"><span class="loading-shimmer"></span></div>
+      <div class="ms" id="live-diff-sub">fetching...</div>
+    </div>
+    <div class="met">
+      <div class="live-tag">LIVE</div>
+      <div class="ml">BTC price (USD)</div>
+      <div class="mv" id="live-price"><span class="loading-shimmer"></span></div>
+      <div class="ms" id="live-price-sub">fetching...</div>
+    </div>
+    <div class="met">
+      <div class="live-tag">LIVE</div>
+      <div class="ml">Avg block time</div>
+      <div class="mv" id="live-blocktime"><span class="loading-shimmer"></span></div>
+      <div class="ms">target: 10.00 min</div>
+    </div>
+  </div>
+
+  <!-- DIFFICULTY ADJUSTMENT PANEL -->
+  <div class="card">
+    <div class="ct">Difficulty adjustment forecast <span class="ct-live">LIVE</span></div>
+
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+      <div>
+        <div class="diff-arrow" id="diff-arrow">↑</div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:26px;font-weight:500;" id="diff-pct-big"><span class="loading-shimmer" style="width:120px;height:28px;"></span></div>
+        <div style="font-size:13px;color:var(--text2);margin-top:4px;" id="diff-description">Calculating...</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:12px;color:var(--text3);">Next adjustment</div>
+        <div style="font-size:15px;font-weight:500;" id="diff-eta">—</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;" id="diff-blocks-remain">— blocks remaining</div>
+      </div>
+    </div>
+
+    <div class="pbg">
+      <div class="pf" id="epoch-bar" style="width:0%;background:#185FA5;"></div>
+    </div>
+    <div class="ei">
+      <span id="epoch-progress-label">Loading epoch data...</span>
+      <span id="epoch-pct-label">0%</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="g4" style="margin-bottom:0;">
+      <div class="met"><div class="ml">Epoch progress</div><div class="mv" id="da-progress">—</div></div>
+      <div class="met"><div class="ml">Remaining blocks</div><div class="mv" id="da-remaining">—</div></div>
+      <div class="met"><div class="ml">Prev adjustment</div><div class="mv" id="da-prev">—</div></div>
+      <div class="met"><div class="ml">Retarget height</div><div class="mv" id="da-height">—</div></div>
+    </div>
+
+    <div id="diff-signal" class="info-box info-green" style="margin-top:12px;margin-bottom:0;">
+      Loading difficulty signal...
+    </div>
+
+    <div class="src" style="margin-top:10px;">
+      <a class="lnk" href="https://mempool.space/mining" target="_blank">mempool.space/mining</a>
+      <a class="lnk" href="https://fork.lol/pow/retarget" target="_blank">fork.lol</a>
+      <a class="lnk" href="https://bitref.com/difficulty/" target="_blank">bitref.com</a>
+      <a class="lnk" href="https://newhedge.io/bitcoin/difficulty-estimator" target="_blank">newhedge.io</a>
+    </div>
+  </div>
+
+  <!-- HASHRATE TREND CHART -->
+  <div class="card">
+    <div class="ct">Network hashrate — 3 day history <span class="ct-live">LIVE</span></div>
+    <div class="hash-chart-wrap">
+      <canvas id="hashChart" role="img" aria-label="Network hashrate over past 3 days"></canvas>
+    </div>
+    <div class="ei" id="hash-chart-labels" style="margin-top:4px;font-size:11px;color:var(--text3);">
+      <span>3 days ago</span><span>2 days ago</span><span>1 day ago</span><span>Now</span>
+    </div>
+  </div>
+
+  <!-- TOP PROFITABILITY METRICS (live-driven) -->
+  <div class="sec-head">Your operation — live profitability</div>
+
+  <div class="g4">
+    <div class="met">
+      <div class="live-tag">LIVE</div>
+      <div class="ml">Hashprice (USD/PH/day)</div>
+      <div class="mv" id="m-hashprice">—</div>
+      <div class="ms" id="m-hashprice-sub">expected revenue per PH/s</div>
+    </div>
+    <div class="met">
+      <div class="live-tag">LIVE</div>
+      <div class="ml">Daily BTC earned</div>
+      <div class="mv" id="m-btc">—</div>
+      <div class="ms" id="m-usd">—</div>
+    </div>
+    <div class="met">
+      <div class="live-tag">LIVE</div>
+      <div class="ml">Daily profit / loss</div>
+      <div class="mv" id="m-profit">—</div>
+      <div class="ms" id="m-margin">—</div>
+    </div>
+    <div class="met">
+      <div class="live-tag">LIVE</div>
+      <div class="ml">BTC breakeven price</div>
+      <div class="mv" id="m-be">—</div>
+      <div class="ms" id="m-be-sub">to cover rental cost</div>
+    </div>
+  </div>
+
+  <!-- Calculator CTA — directs user to the calculator on the same Live tab -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;
+    background:var(--surface2);border-radius:var(--radius-md);border:1px solid var(--border2);
+    margin-top:2px;">
+    <div>
+      <div style="font-size:13px;font-weight:500;color:var(--text);">Adjust your parameters</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px;">Change hashrate, rental cost, BTC price or pool fee to model different scenarios</div>
+    </div>
+    <button onclick="showPage('calc',this)" style="background:var(--blue);color:#fff;border:none;
+      border-radius:var(--radius-md);padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;
+      white-space:nowrap;flex-shrink:0;">Open calculator →</button>
+  </div>
+
+</div><!-- /page-live temporarily closed -->
+<div class="page" id="page-ocean-pool">
+
+  <!-- OCEAN POOL -->
+  <div class="sec-head">OCEAN pool <span style="font-size:12px;color:var(--text3);font-weight:400;" id="ocean-panel-time">— fetching live data...</span></div>
+
+  <div class="card">
+    <div class="ct">Pool stats <span class="ct-live">LIVE — computed from mempool.space + recent blocks</span></div>
+
+    <div class="g4" style="margin-bottom:12px;">
+      <div class="met">
+        <div class="live-tag">LIVE</div>
+        <div class="ml">Pool hashrate</div>
+        <div class="mv" id="ocean-hashrate"><span class="loading-shimmer"></span></div>
+        <div class="ms" id="ocean-hashrate-sub">scanning recent blocks...</div>
+      </div>
+      <div class="met">
+        <div class="live-tag">LIVE</div>
+        <div class="ml">Avg blocks / day</div>
+        <div class="mv" id="ocean-bpd"><span class="loading-shimmer"></span></div>
+        <div class="ms" id="ocean-bpd-sub">based on 7-day block share</div>
+      </div>
+      <div class="met">
+        <div class="live-tag">LIVE</div>
+        <div class="ml">Network share</div>
+        <div class="mv" id="ocean-share"><span class="loading-shimmer"></span></div>
+        <div class="ms" id="ocean-share-sub">of total network hashrate</div>
+      </div>
+      <div class="met">
+        <div class="live-tag">LIVE</div>
+        <div class="ml">Last block found</div>
+        <div class="mv" id="ocean-last-block"><span class="loading-shimmer"></span></div>
+        <div class="ms" id="ocean-last-block-sub">block height</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:10px;">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:5px;">Network share — visual</div>
+      <div style="display:flex;height:22px;border-radius:var(--radius-sm);overflow:hidden;width:100%;background:var(--surface2);">
+        <div id="ocean-share-bar" style="width:2%;background:#0F6E56;transition:width .6s ease;display:flex;align-items:center;padding-left:6px;font-size:11px;font-weight:500;color:#E1F5EE;white-space:nowrap;overflow:hidden;"></div>
+      </div>
+      <div class="ei" style="margin-top:3px;"><span id="ocean-share-bar-label" style="color:var(--teal-text);">OCEAN share</span><span style="color:var(--text3);">100% = full network</span></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="stat-grid" style="margin-bottom:0;">
+      <div class="stat-item"><div class="stat-val">2% / 1%</div><div class="stat-lbl">Fee · standard / DATUM</div></div>
+      <div class="stat-item"><div class="stat-val">0.01048576 BTC</div><div class="stat-lbl">Min on-chain payout</div></div>
+      <div class="stat-item"><div class="stat-val" id="ocean-threshold-days">—</div><div class="stat-lbl">Days to on-chain threshold</div></div>
+    </div>
+
+    <div class="info-box info-blue" style="margin-top:12px;margin-bottom:0;font-size:12px;" id="ocean-method-note">
+      Hashrate derived from OCEAN-tagged blocks found in the last 144 blocks (~1 day) cross-referenced with mempool.space block data. Network share = OCEAN hashrate ÷ live network hashrate. Blocks/day = OCEAN share × 144 expected daily blocks.
+    </div>
+
+    <div class="src">
+      <a class="lnk" href="https://ocean.xyz/stats" target="_blank">ocean.xyz/stats (verify live)</a>
+      <a class="lnk" href="https://ocean.xyz/docs/tides" target="_blank">TIDES docs</a>
+      <a class="lnk" href="https://ocean.xyz/dashboard" target="_blank">Your dashboard</a>
+    </div>
+  </div>
+
+  <!-- TIDES -->
+  <div class="card">
+    <div class="ct">OCEAN pool hashrate history <span class="ct-live">LIVE — mempool.space/api/v1/mining/pool/ocean/hashrate</span></div>
+
+    <!-- Time range selector -->
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+      <button class="ocean-range-btn active" onclick="setOceanRange('1m',this)">1M</button>
+      <button class="ocean-range-btn" onclick="setOceanRange('3m',this)">3M</button>
+      <button class="ocean-range-btn" onclick="setOceanRange('6m',this)">6M</button>
+      <button class="ocean-range-btn" onclick="setOceanRange('1y',this)">1Y</button>
+      <button class="ocean-range-btn" onclick="setOceanRange('all',this)">All</button>
+      <div style="flex:1;"></div>
+      <span style="font-size:11px;color:var(--text3);align-self:center;">Weekly averages</span>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:8px;font-size:12px;color:var(--text3);flex-wrap:wrap;">
+      <span style="display:flex;align-items:center;gap:5px;">
+        <span style="width:16px;height:2px;background:#0F6E56;display:inline-block;border-radius:1px;"></span>Pool hashrate (EH/s)
+      </span>
+      <span style="display:flex;align-items:center;gap:5px;">
+        <span style="width:16px;height:0;display:inline-block;border-top:2px dashed #BA7517;"></span>Expected blocks/day
+      </span>
+    </div>
+
+    <!-- Chart -->
+    <div style="position:relative;width:100%;height:160px;">
+      <canvas id="oceanHashChart" role="img" aria-label="OCEAN pool hashrate history chart"></canvas>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:4px;">
+      <span id="ocean-chart-start">—</span>
+      <span id="ocean-chart-mid">—</span>
+      <span id="ocean-chart-end">Now</span>
+    </div>
+
+    <!-- Stats strip below chart -->
+    <div class="divider"></div>
+    <div class="g4" style="margin-bottom:0;">
+      <div class="met">
+        <div class="ml">Current (live)</div>
+        <div class="mv" id="ocg-current">—</div>
+        <div class="ms" id="ocg-current-sub">EH/s</div>
+      </div>
+      <div class="met">
+        <div class="ml">Peak (all-time)</div>
+        <div class="mv" id="ocg-peak">—</div>
+        <div class="ms" id="ocg-peak-date">—</div>
+      </div>
+      <div class="met">
+        <div class="ml">Range avg</div>
+        <div class="mv" id="ocg-avg">—</div>
+        <div class="ms" id="ocg-avg-label">selected period</div>
+      </div>
+      <div class="met">
+        <div class="ml">Trend (30d)</div>
+        <div class="mv" id="ocg-trend">—</div>
+        <div class="ms" id="ocg-trend-sub">vs 30 days ago</div>
+      </div>
+    </div>
+
+    <div class="src" style="margin-top:10px;">
+      <a class="lnk" href="https://mempool.space/mining/pool/ocean" target="_blank">mempool.space/mining/pool/ocean →</a>
+      <a class="lnk" href="https://ocean.xyz/stats" target="_blank">ocean.xyz/stats →</a>
+    </div>
+  </div>
+
+  <!-- TIDES -->
+  <div class="card">
+    <div class="ct">TIDES payout system <span class="ct-static">OCEAN</span></div>
+    <div class="sr"><div class="dot dteal"></div><div class="sl2"><strong>Rolling 8-block window:</strong> every share tracked individually across the last 8 blocks of network difficulty. Your cut of each block is exact and auditable.</div></div>
+    <div class="sr"><div class="dot dteal"></div><div class="sl2"><strong>Each share paid ~8× on average:</strong> shares never dropped early — credited across multiple block finds, reducing variance far below standard PPLNS.</div></div>
+    <div class="sr"><div class="dot dteal"></div><div class="sl2"><strong>Non-custodial direct payment:</strong> BTC paid directly from the coinbase transaction to your wallet. OCEAN never holds your funds.</div></div>
+    <div class="sr" style="border:none;"><div class="dot dteal"></div><div class="sl2"><strong>Full tx fees included:</strong> unlike FPPS (which estimates fees conservatively), TIDES passes 100% of actual fee revenue. During fee spikes, TIDES can significantly outperform FPPS pools.</div></div>
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Payout variance by method</div>
+    <div class="variance-bar"><div class="var-lbl">FPPS (Foundry, F2Pool) — lowest variance, estimated fees only</div><div class="var-track"><div class="var-fill" style="width:15%;background:#185FA5;"></div></div></div>
+    <div class="variance-bar"><div class="var-lbl">TIDES (OCEAN) — low variance, actual full fees passed through</div><div class="var-track"><div class="var-fill" style="width:30%;background:#0F6E56;"></div></div></div>
+    <div class="variance-bar"><div class="var-lbl">PPLNS (AntPool, ViaBTC) — moderate variance</div><div class="var-track"><div class="var-fill" style="width:52%;background:#BA7517;"></div></div></div>
+    <div class="variance-bar"><div class="var-lbl">Solo mining — extreme variance (years between blocks at 1 PH/s)</div><div class="var-track"><div class="var-fill" style="width:100%;background:#A32D2D;"></div></div></div>
+  </div>
+
+  <!-- POOL COMPARISON -->
+  <div class="card">
+    <div class="ct">Pool comparison</div>
+    <div class="compare-row">
+      <div class="pool-col hl">
+        <div class="pool-col-name">OCEAN</div>
+        <div class="pool-stat">Fee: <span>2% / 1% DATUM</span></div>
+        <div class="pool-stat">Payout: <span>TIDES (non-custodial)</span></div>
+        <div class="pool-stat">Network: <span>~2%</span></div>
+        <div class="pool-stat">Custody: <span>None — direct coinbase</span></div>
+        <div class="pool-stat">KYC: <span>None required</span></div>
+      </div>
+      <div class="pool-col">
+        <div class="pool-col-name">Foundry USA</div>
+        <div class="pool-stat">Fee: <span>0% FPPS+</span></div>
+        <div class="pool-stat">Payout: <span>FPPS+ (custodial)</span></div>
+        <div class="pool-stat">Network: <span>~30%</span></div>
+        <div class="pool-stat">Custody: <span>Foundry holds funds</span></div>
+        <div class="pool-stat">KYC: <span>Required</span></div>
+      </div>
+      <div class="pool-col">
+        <div class="pool-col-name">AntPool</div>
+        <div class="pool-stat">Fee: <span>1–2.5%</span></div>
+        <div class="pool-stat">Payout: <span>PPLNS / PPS+</span></div>
+        <div class="pool-stat">Network: <span>~18%</span></div>
+        <div class="pool-stat">Custody: <span>AntPool holds funds</span></div>
+        <div class="pool-stat">KYC: <span>Required</span></div>
+      </div>
+      <div class="pool-col">
+        <div class="pool-col-name">ViaBTC</div>
+        <div class="pool-stat">Fee: <span>2% PPS</span></div>
+        <div class="pool-stat">Payout: <span>PPS or PPLNS</span></div>
+        <div class="pool-stat">Network: <span>~9%</span></div>
+        <div class="pool-stat">Custody: <span>ViaBTC holds funds</span></div>
+        <div class="pool-stat">KYC: <span>Required</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-ocean-pool -->
+<div class="page active" id="page-live-2">
+
+  <!-- DECISION BANNER — top of page, updates with every calc() call -->
+  <div id="dec-banner" style="margin-bottom:14px;border-radius:var(--radius-md);overflow:hidden;"></div>
+
+  <!-- CALCULATOR -->
+  <div class="sec-head">Profitability calculator</div>
+
+  <div class="card">
+    <div class="ct">Quick scenarios — answer common questions</div>
+    <div class="scen-row">
+      <button class="scen-btn active" onclick="loadScenario('live',this)">Today's numbers</button>
+      <button class="scen-btn" onclick="loadScenario('bull',this)">If BTC hits $150K?</button>
+      <button class="scen-btn" onclick="loadScenario('bear',this)">If BTC drops to $50K?</button>
+      <button class="scen-btn" onclick="loadScenario('highnet',this)">If hashrate spikes?</button>
+      <button class="scen-btn" onclick="loadScenario('diff_drop',this)">If difficulty drops 5%?</button>
+      <button class="scen-btn" onclick="loadScenario('datum',this)">Running DATUM (1% fee)?</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Parameters</div>
+    <div class="slrow">
+      <label>Hashrate rented (TH/s)</label>
+      <input type="range" min="100" max="5000" step="100" value="1000" id="sl-hash" oninput="calc()">
+      <span class="slv" id="lbl-hash">1,000 TH/s</span>
+    </div>
+    <div class="slrow">
+      <label>Daily rental cost (USD)</label>
+      <input type="range" min="10" max="200" step="1" value="36" id="sl-rent" oninput="calc()">
+      <span class="slv" id="lbl-rent">$36/day</span>
+    </div>
+    <div class="slrow">
+      <label>Network hashrate (EH/s)</label>
+      <input type="range" min="500" max="1400" step="10" value="800" id="sl-net" oninput="calc()">
+      <span class="slv" id="lbl-net">800 EH/s</span>
+    </div>
+    <div class="live-override" id="net-override-note"></div>
+    <div class="slrow">
+      <label>BTC price (USD)</label>
+      <input type="range" min="40000" max="200000" step="1000" value="94000" id="sl-price" oninput="calc()">
+      <span class="slv" id="lbl-price">$94,000</span>
+    </div>
+    <div class="live-override" id="price-override-note"></div>
+    <div class="slrow">
+      <label>OCEAN pool fee (%)</label>
+      <input type="range" min="1" max="2" step="1" value="2" id="sl-fee" oninput="calc()">
+      <span class="slv" id="lbl-fee">2% (standard)</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="g4">
+      <div class="met"><div class="ml">Daily BTC (after fee)</div><div class="mv" id="r-btc">—</div></div>
+      <div class="met"><div class="ml">Daily revenue</div><div class="mv" id="r-rev">—</div></div>
+      <div class="met"><div class="ml">Daily rental</div><div class="mv" id="r-cost">$36</div></div>
+      <div class="met"><div class="ml">Daily profit</div><div class="mv" id="r-profit">—</div></div>
+    </div>
+    <div class="g3" style="margin-top:10px;">
+      <div class="met"><div class="ml">Monthly profit (30d)</div><div class="mv" id="r-monthly">—</div></div>
+      <div class="met"><div class="ml">BTC breakeven price</div><div class="mv" id="r-be">—</div></div>
+      <div class="met"><div class="ml">Days to on-chain payout</div><div class="mv" id="r-threshold">—</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="ct" style="margin-bottom:8px;">30-day projection</div>
+    <table class="sumtbl">
+      <tr><td>Total rental cost</td><td id="t-cost">—</td></tr>
+      <tr><td>Total BTC earned (after OCEAN fee)</td><td id="t-btc">—</td></tr>
+      <tr><td>Total revenue at current BTC price</td><td id="t-rev">—</td></tr>
+      <tr><td>Net profit</td><td id="t-net">—</td></tr>
+      <tr><td>Cost basis per BTC acquired</td><td id="t-basis">—</td></tr>
+    </table>
+    <div id="dec-out"></div>
+  </div>
+
+  <!-- DAILY P&L TRACKER -->
+  <div class="card">
+    <div class="ct">Running P&L tracker <span class="ct-live">THIS DEVICE</span></div>
+    <div class="info-teal" style="margin-bottom:14px;">
+      Log today's actual profit or loss each day. Stored locally on this device — survives restarts.
+      Use the calculator above to get your daily profit figure, then tap Log Day.
+    </div>
+
+    <div class="g3" style="margin-bottom:14px;">
+      <div class="met">
+        <div class="ml">This week</div>
+        <div class="mv" id="pnl-week">—</div>
+        <div class="ms" id="pnl-week-days">0 days logged</div>
+      </div>
+      <div class="met">
+        <div class="ml">This month</div>
+        <div class="mv" id="pnl-month">—</div>
+        <div class="ms" id="pnl-month-days">0 days logged</div>
+      </div>
+      <div class="met">
+        <div class="ml">Today (est.)</div>
+        <div class="mv" id="pnl-today-est">—</div>
+        <div class="ms">from calculator above</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="flex:1;min-width:140px;">
+        <div class="ml" style="margin-bottom:4px;">Log amount (USD)</div>
+        <input type="number" id="pnl-input" step="0.01" placeholder="e.g. 12.50 or -4.20"
+          style="width:100%;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text);font-size:14px;">
+      </div>
+      <div style="display:flex;gap:6px;margin-top:18px;">
+        <button class="btn" onclick="pnlLogDay()" style="white-space:nowrap;">Log day</button>
+        <button class="btn-outline" onclick="pnlPrefill()" style="white-space:nowrap;" title="Fill with today's estimated profit from calculator">Use calc →</button>
+      </div>
+    </div>
+
+    <div id="pnl-log" style="max-height:160px;overflow-y:auto;font-size:12px;"></div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+      <button class="btn-outline" onclick="pnlClear()" style="font-size:11px;color:var(--muted2);">Clear all history</button>
+    </div>
+  </div>
+
+  <!-- TIMING STRATEGY -->
+  <div class="card">
+    <div class="ct">When to rent — timing signals <span class="ct-live">LIVE</span></div>
+    <div id="timing-signals">
+      <div class="sr"><div class="dot db"></div><div class="sl2">Loading live difficulty signal...</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="ct" style="margin-bottom:8px;">Difficulty epoch progress</div>
+    <div class="pbg"><div class="pf" id="epoch-bar2" style="width:0%;background:#185FA5;"></div></div>
+    <div class="ei"><span id="epoch-label2">Loading...</span><span id="epoch-eta2">—</span></div>
+    <div class="src" style="margin-top:10px;">
+      <a class="lnk" href="https://fork.lol/pow/retarget" target="_blank">fork.lol →</a>
+      <a class="lnk" href="https://mempool.space/mining" target="_blank">mempool.space →</a>
+      <a class="lnk" href="https://hashrateindex.com" target="_blank">hashrateindex.com →</a>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="card">
+    <div class="ct">Daily monitoring checklist</div>
+    <div class="sr"><div class="dot db"></div><div class="sl2">BTC price vs your breakeven (see live figure above) — pause rental if below</div></div>
+    <div class="sr"><div class="dot db"></div><div class="sl2">Difficulty forecast above — is the next epoch favorable or unfavorable?</div></div>
+    <div class="sr"><div class="dot db"></div><div class="sl2">OCEAN pool at ocean.xyz/stats — confirm pool is hashing normally</div></div>
+    <div class="sr"><div class="dot db"></div><div class="sl2">My Stats page — check shares being received, workers active, unpaid balance progress</div></div>
+    <div class="sr"><div class="dot db"></div><div class="sl2">Unpaid balance toward 0.01048576 BTC threshold — or use Lightning BOLT12 for micro-payouts</div></div>
+    <div class="sr" style="border:none;"><div class="dot db"></div><div class="sl2">Decide: sell today's BTC or accumulate? Your cost basis is your breakeven price — anything above is profit.</div></div>
+  </div>
+
+</div><!-- /page-live-2 -->
+
+<div class="page" id="page-network">
+
+  <!-- BITCOIN KNOTS + BIP-110 PANEL -->
+  <div class="sec-head">Network governance <span style="font-size:12px;color:var(--text3);font-weight:400;">— Bitcoin Knots distribution &amp; BIP-110 signaling</span></div>
+
+  <div class="card">
+    <div class="ct">Bitcoin Knots node distribution <span class="ct-live" id="knots-source-tag">LIVE · bitnodes.io</span></div>
+    <div class="info-teal" style="margin-bottom:14px;">
+      Bitcoin Knots is an alternative full-node implementation by Luke Dashjr (also OCEAN's co-founder). It enforces stricter transaction relay policies — including an 83-byte OP_RETURN cap and spam filters — and is the primary driver behind BIP-110 adoption. Running Knots is a policy vote: operators choose which transactions their node relays.
+    </div>
+    <div class="stat-grid">
+      <div class="stat-item">
+        <div class="stat-val" style="color:#0F6E56;" id="knots-pct">—</div>
+        <div class="stat-lbl">Bitcoin Knots share</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="knots-count">—</div>
+        <div class="stat-lbl">Knots nodes (reachable)</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="knots-total">—</div>
+        <div class="stat-lbl">Total reachable nodes</div>
+      </div>
+    </div>
+
+    <div style="margin:14px 0 6px;font-size:12px;color:var(--text3);">Node share — visual distribution</div>
+    <div style="display:flex;height:28px;border-radius:var(--radius-sm);overflow:hidden;width:100%;" id="knots-bar-wrap">
+      <div id="knots-bar-core" style="background:#185FA5;display:flex;align-items:center;padding-left:10px;font-size:12px;font-weight:500;color:#E6F1FB;transition:width .6s;" title="Bitcoin Core">—</div>
+      <div id="knots-bar-knots" style="background:#0F6E56;display:flex;align-items:center;padding-left:8px;font-size:12px;font-weight:500;color:#E1F5EE;transition:width .6s;" title="Bitcoin Knots">—</div>
+      <div id="knots-bar-other" style="background:#888780;transition:width .6s;" title="Other"></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:6px;font-size:11px;color:var(--text3);">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:#185FA5;border-radius:2px;display:inline-block;"></span>Bitcoin Core</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:#0F6E56;border-radius:2px;display:inline-block;"></span>Bitcoin Knots</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:#888780;border-radius:2px;display:inline-block;"></span>Other</span>
+    </div>
+
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Version breakdown — top clients</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;" id="knots-version-table">
+      <thead>
+        <tr style="border-bottom:0.5px solid var(--border2);">
+          <th style="text-align:left;padding:5px 6px;font-weight:500;color:var(--text2);">Client / version</th>
+          <th style="text-align:right;padding:5px 6px;font-weight:500;color:var(--text2);">Nodes</th>
+          <th style="text-align:right;padding:5px 6px;font-weight:500;color:var(--text2);">Share</th>
+        </tr>
+      </thead>
+      <tbody id="knots-version-body">
+        <tr><td colspan="3" style="padding:8px 6px;color:var(--text3);">Loading live node data from bitnodes.io...</td></tr>
+      </tbody>
+    </table>
+
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Growth timeline</div>
+    <div class="sr"><div class="dot dteal"></div><div class="sl2" style="font-size:13px;"><strong>Jan 2024:</strong> ~69 Knots nodes — effectively zero presence on the network</div></div>
+    <div class="sr"><div class="dot dteal"></div><div class="sl2" style="font-size:13px;"><strong>Jun 2025:</strong> ~2,673 nodes — crossed 12% as OP_RETURN debate escalated</div></div>
+    <div class="sr"><div class="dot dteal"></div><div class="sl2" style="font-size:13px;"><strong>Sep 2025:</strong> ~4,200+ nodes — surged to 19–25% following Bitcoin Core v29.1 backlash</div></div>
+    <div class="sr" style="border:none;"><div class="dot dteal"></div><div class="sl2" style="font-size:13px;"><strong>Now:</strong> <span id="knots-now-label">Loading live count...</span></div></div>
+
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Key differences: Knots vs Core</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="border-bottom:0.5px solid var(--border2);">
+            <th style="text-align:left;padding:6px 8px;font-weight:500;color:var(--text2);">Feature</th>
+            <th style="text-align:center;padding:6px 8px;font-weight:500;color:#0C447C;">Bitcoin Core</th>
+            <th style="text-align:center;padding:6px 8px;font-weight:500;color:#085041;">Bitcoin Knots</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:0.5px solid var(--border);"><td style="padding:6px 8px;color:var(--text2);">OP_RETURN limit</td><td style="text-align:center;padding:6px 8px;color:var(--text);">100KB (v30+, unlimited)</td><td style="text-align:center;padding:6px 8px;color:var(--text);">83 bytes</td></tr>
+          <tr style="border-bottom:0.5px solid var(--border);"><td style="padding:6px 8px;color:var(--text2);">Spam / inscription filtering</td><td style="text-align:center;padding:6px 8px;color:var(--text);">None by default</td><td style="text-align:center;padding:6px 8px;color:var(--text);">Yes — configurable</td></tr>
+          <tr style="border-bottom:0.5px solid var(--border);"><td style="padding:6px 8px;color:var(--text2);">BIP-110 support</td><td style="text-align:center;padding:6px 8px;color:var(--text);">No</td><td style="text-align:center;padding:6px 8px;color:var(--text);">Yes (built-in)</td></tr>
+          <tr style="border-bottom:0.5px solid var(--border);"><td style="padding:6px 8px;color:var(--text2);">OCEAN / DATUM integration</td><td style="text-align:center;padding:6px 8px;color:var(--text);">Compatible</td><td style="text-align:center;padding:6px 8px;color:var(--text);">Native (same author)</td></tr>
+          <tr><td style="padding:6px 8px;color:var(--text2);">Maintainer</td><td style="text-align:center;padding:6px 8px;color:var(--text);">Multiple Core devs</td><td style="text-align:center;padding:6px 8px;color:var(--text);">Luke Dashjr</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="src" style="margin-top:10px;">
+      <a class="lnk" href="https://bitnodes.io/nodes/" target="_blank">bitnodes.io/nodes (live) ↗</a>
+      <a class="lnk" href="https://bitnodes.io/charts/" target="_blank">bitnodes.io/charts ↗</a>
+      <a class="lnk" href="https://coin.dance/nodes" target="_blank">coin.dance/nodes ↗</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">BIP-110 miner signaling <span class="ct-live">LIVE — bip110monitor.com/api</span></div>
+    <div class="info-amber" style="margin-bottom:14px;" id="bip110-summary">
+      Loading BIP-110 signaling data...
+    </div>
+
+    <div class="g4" style="margin-bottom:14px;">
+      <div class="met">
+        <div class="live-tag">LIVE</div>
+        <div class="ml">Current signal rate</div>
+        <div class="mv" id="bip-signal-rate">—</div>
+        <div class="ms">of 2,016 blocks needed</div>
+      </div>
+      <div class="met">
+        <div class="live-tag">LIVE</div>
+        <div class="ml">Signaling blocks</div>
+        <div class="mv" id="bip-signal-blocks">—</div>
+        <div class="ms" id="bip-signal-of">of — blocks this period</div>
+      </div>
+      <div class="met">
+        <div class="ml">Activation threshold</div>
+        <div class="mv">55%</div>
+        <div class="ms">1,109 of 2,016 blocks</div>
+      </div>
+      <div class="met">
+        <div class="ml">Current period</div>
+        <div class="mv" id="bip-period">469</div>
+        <div class="ms" id="bip-blocks-left">~8.2 days left</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Signal rate vs 55% activation threshold</div>
+    <div style="position:relative;margin-bottom:4px;">
+      <div class="pbg" style="height:20px;">
+        <div class="pf" id="bip-signal-bar" style="width:0%;background:#BA7517;height:20px;border-radius:4px;transition:width .6s;"></div>
+      </div>
+      <div style="position:absolute;top:0;left:55%;width:2px;height:20px;background:#A32D2D;border-radius:1px;"></div>
+    </div>
+    <div class="ei">
+      <span id="bip-bar-label">0.00% signaling</span>
+      <span style="color:var(--red-text);">55% threshold</span>
+    </div>
+
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Period history</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;" id="bip-history-table">
+      <thead>
+        <tr style="border-bottom:0.5px solid var(--border2);">
+          <th style="text-align:left;padding:5px 6px;font-weight:500;color:var(--text2);">Period</th>
+          <th style="text-align:left;padding:5px 6px;font-weight:500;color:var(--text2);">Blocks</th>
+          <th style="text-align:right;padding:5px 6px;font-weight:500;color:var(--text2);">Signaling</th>
+          <th style="text-align:right;padding:5px 6px;font-weight:500;color:var(--text2);">Signal %</th>
+        </tr>
+      </thead>
+      <tbody id="bip-history-body">
+        <tr><td colspan="4" style="padding:8px 6px;color:var(--text3);">Loading period history...</td></tr>
+      </tbody>
+    </table>
+
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Activation timeline</div>
+    <div class="sr"><div class="dot dg"></div><div class="sl2" style="font-size:13px;"><strong>Dec 2025:</strong> Signaling window opened. First signal block appeared in early 2026.</div></div>
+    <div class="sr"><div class="dot da"></div><div class="sl2" style="font-size:13px;"><strong>Now (Apr 2026):</strong> 0.00% miner signaling. Voluntary signaling deadline is block 961,542 (Period 476, ~Aug 2026).</div></div>
+    <div class="sr"><div class="dot dr"></div><div class="sl2" style="font-size:13px;"><strong>Aug 2026 (block 961,542):</strong> Voluntary period ends. Mandatory signaling begins — miners who do not signal risk orphaned blocks if 55% is reached.</div></div>
+    <div class="sr" style="border:none;"><div class="dot dr"></div><div class="sl2" style="font-size:13px;"><strong>Sep 2026 (block 965,664):</strong> Unconditional activation — BIP-110 activates on all supporting nodes regardless of miner signaling. Risk of chain split if economic majority is split.</div></div>
+
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">What BIP-110 proposes to restrict</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="border-bottom:0.5px solid var(--border2);">
+            <th style="text-align:left;padding:5px 8px;font-weight:500;color:var(--text2);">Field</th>
+            <th style="text-align:right;padding:5px 8px;font-weight:500;color:var(--text2);">Current (Core v30)</th>
+            <th style="text-align:right;padding:5px 8px;font-weight:500;color:var(--text2);">BIP-110 limit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:0.5px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">OP_RETURN data</td><td style="text-align:right;padding:5px 8px;color:var(--text);">100KB (unlimited)</td><td style="text-align:right;padding:5px 8px;color:#3B6D11;">83 bytes</td></tr>
+          <tr style="border-bottom:0.5px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Transaction outputs</td><td style="text-align:right;padding:5px 8px;color:var(--text);">No limit</td><td style="text-align:right;padding:5px 8px;color:#3B6D11;">34 bytes max</td></tr>
+          <tr style="border-bottom:0.5px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Witness elements</td><td style="text-align:right;padding:5px 8px;color:var(--text);">No data limit</td><td style="text-align:right;padding:5px 8px;color:#3B6D11;">256 bytes max</td></tr>
+          <tr><td style="padding:5px 8px;color:var(--text2);">Duration</td><td style="text-align:right;padding:5px 8px;color:var(--text);">Permanent</td><td style="text-align:right;padding:5px 8px;color:#3B6D11;">~1 year (52,416 blocks), then auto-expires</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="src" style="margin-top:12px;">
+      <a class="lnk" href="https://bip110monitor.com/" target="_blank">bip110monitor.com (live)</a>
+      <a class="lnk" href="https://bip110monitor.com/api" target="_blank">JSON API</a>
+      <a class="lnk" href="https://mempool.space/block/945504" target="_blank">Current period on mempool.space</a>
+    </div>
+  </div>
+
+  <!-- HASH RIBBON PANEL -->
+  <div class="sec-head">Hash Ribbon <span style="font-size:12px;color:var(--text3);font-weight:400;">— 30D vs 60D hashrate moving average · miner capitulation detector</span></div>
+
+  <div class="card">
+    <div class="ct">Current signal <span class="ct-live">LIVE — computed from hashrate history</span></div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+      <div id="hr-signal-dot" style="width:18px;height:18px;border-radius:50%;background:var(--text3);flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="font-size:20px;font-weight:500;" id="hr-signal-label">Loading...</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:3px;" id="hr-signal-desc">Fetching hashrate history...</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Mining action</div>
+        <span class="badge bb" id="hr-action-badge">—</span>
+      </div>
+    </div>
+    <div class="g4" style="margin-bottom:14px;">
+      <div class="met"><div class="ml">30D MA hashrate</div><div class="mv" id="hr-30d">—</div><div class="ms">30-day average</div></div>
+      <div class="met"><div class="ml">60D MA hashrate</div><div class="mv" id="hr-60d">—</div><div class="ms">60-day average</div></div>
+      <div class="met"><div class="ml">30D vs 60D gap</div><div class="mv" id="hr-gap">—</div><div class="ms" id="hr-gap-sub">spread</div></div>
+      <div class="met"><div class="ml">Phase duration</div><div class="mv" id="hr-duration">—</div><div class="ms" id="hr-duration-sub">days in current phase</div></div>
+    </div>
+    <div style="position:relative;width:100%;height:160px;margin-bottom:4px;">
+      <canvas id="hashRibbonChart"></canvas>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:10px;">
+      <span id="hr-chart-start">—</span><span id="hr-chart-end">Now</span>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin-bottom:14px;">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:24px;height:3px;background:#185FA5;border-radius:2px;display:inline-block;"></span>30D MA</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:24px;height:3px;background:#9a9a96;border-radius:2px;display:inline-block;border-style:dashed;"></span>60D MA</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:var(--green-bg);border:1px solid #639922;border-radius:2px;display:inline-block;"></span>Recovery</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:var(--red-bg);border:1px solid #A32D2D;border-radius:2px;display:inline-block;"></span>Capitulation</span>
+    </div>
+    <div class="src">
+      <a class="lnk" href="https://charts.bitbo.io/hash-ribbons/" target="_blank">bitbo.io hash ribbons →</a>
+      <a class="lnk" href="https://www.bitcoinmagazinepro.com/charts/hash-ribbons/" target="_blank">bitcoinmagazinepro →</a>
+    </div>
+  </div>
+
+  <!-- COMBINED SIGNAL PANEL -->
+  <div class="sec-head">Combined mining signal <span style="font-size:12px;color:var(--text3);font-weight:400;">— difficulty × hashprice × rental cost</span></div>
+
+  <div class="card">
+    <div class="ct">Optimal rental timing <span class="ct-live">LIVE</span></div>
+    <div style="display:flex;align-items:center;gap:20px;padding:14px 0;border-bottom:0.5px solid var(--border);">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div id="tl-green" style="width:36px;height:36px;border-radius:50%;background:var(--surface2);transition:all .3s;"></div>
+        <div id="tl-amber" style="width:36px;height:36px;border-radius:50%;background:var(--surface2);transition:all .3s;"></div>
+        <div id="tl-red"   style="width:36px;height:36px;border-radius:50%;background:var(--surface2);transition:all .3s;"></div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:22px;font-weight:500;line-height:1.2;" id="cs-headline">Computing...</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:6px;line-height:1.5;" id="cs-reason">Loading live data...</div>
+        <div style="margin-top:10px;"><span class="badge bb" id="cs-action-badge" style="font-size:13px;padding:5px 14px;">—</span></div>
+      </div>
+    </div>
+    <div style="margin-top:14px;margin-bottom:4px;font-size:12px;color:var(--text3);">Signal breakdown</div>
+    <div class="sr">
+      <div id="cs-dot-diff" class="dot db"></div>
+      <div class="sl2" style="font-size:13px;"><strong>Difficulty direction:</strong> <span id="cs-diff-text">—</span></div>
+      <span class="badge bb" id="cs-diff-badge">—</span>
+    </div>
+    <div class="sr">
+      <div id="cs-dot-hp" class="dot db"></div>
+      <div class="sl2" style="font-size:13px;"><strong>Hashprice vs rental cost:</strong> <span id="cs-hp-text">—</span></div>
+      <span class="badge bb" id="cs-hp-badge">—</span>
+    </div>
+    <div class="sr">
+      <div id="cs-dot-ribbon" class="dot db"></div>
+      <div class="sl2" style="font-size:13px;"><strong>Hash Ribbon phase:</strong> <span id="cs-ribbon-text">—</span></div>
+      <span class="badge bb" id="cs-ribbon-badge">—</span>
+    </div>
+    <div class="sr" style="border:none;">
+      <div id="cs-dot-margin" class="dot db"></div>
+      <div class="sl2" style="font-size:13px;"><strong>Profit margin:</strong> <span id="cs-margin-text">—</span></div>
+      <span class="badge bb" id="cs-margin-badge">—</span>
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Combined score — <span id="cs-score-label">0 of 8</span></div>
+    <div class="pbg" style="height:12px;"><div id="cs-score-bar" class="pf" style="width:0%;height:12px;background:#639922;transition:width .5s;"></div></div>
+    <div class="ei" style="margin-top:4px;">
+      <span style="color:var(--red-text);">Pause rental</span>
+      <span style="color:var(--amber-text);">Caution</span>
+      <span style="color:var(--green-text);">Rent aggressively</span>
+    </div>
+  </div>
+
+</div><!-- /page-network -->
+
+<div class="page" id="page-mystats">
+
+  <!-- OCEAN MY STATS PANEL -->
+  <div class="sec-head">My OCEAN stats <span style="font-size:12px;color:var(--text3);font-weight:400;" id="miner-last-updated">— enter your Bitcoin address below</span></div>
+
+  <div class="card">
+    <div class="ct">Address <span class="ct-static">YOUR MINER</span></div>
+
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:10px;">
+      <div style="flex:1;">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:5px;">Your Bitcoin payout address</div>
+        <input type="text" id="ocean-address-input" placeholder="bc1q... or 1... or 3..."
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          style="width:100%;padding:10px 14px;font-size:13px;font-family:var(--font);
+                 background:var(--surface2);color:var(--text);border:0.5px solid var(--border2);
+                 border-radius:var(--radius-sm);outline:none;box-sizing:border-box;"
+          oninput="updateOceanLinks()">
+      </div>
+      <button id="ocean-go-btn" onclick="loadMinerStats()"
+        style="padding:10px 18px;font-size:13px;font-family:var(--font);font-weight:500;
+               background:var(--teal-bg);color:var(--teal-text);border:1px solid var(--teal);
+               border-radius:var(--radius-sm);cursor:pointer;white-space:nowrap;opacity:0.4;pointer-events:none;">
+        Load Stats →
+      </button>
+    </div>
+    <div id="ocean-addr-msg" style="font-size:12px;margin-bottom:6px;min-height:16px;color:var(--text3);">
+      Enter your Bitcoin address to load live miner stats from ocean.xyz (Start9 only — uses nginx proxy).
+    </div>
+    <div style="margin-top:8px;">
+      <button onclick="viewRawHTML()" style="font-size:11px;font-family:var(--font);padding:4px 10px;background:transparent;border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text3);cursor:pointer;">
+        View raw HTML from proxy →
+      </button>
+      <span style="font-size:11px;color:var(--text3);margin-left:8px;">Use this to diagnose parsing issues</span>
+    </div>
+  </div>
+
+  <!-- LIVE MINER STATS — hidden until loaded -->
+  <div id="miner-stats-panel" style="display:none;">
+
+    <!-- Top 4 key metrics -->
+    <div class="g4" style="margin-bottom:14px;">
+      <div class="met">
+        <div class="live-tag">LIVE</div>
+        <div class="ml">Unpaid earnings</div>
+        <div class="mv" id="ms-unpaid">—</div>
+        <div class="ms" id="ms-unpaid-usd">—</div>
+      </div>
+      <div class="met">
+        <div class="live-tag">LIVE</div>
+        <div class="ml">Est. payout next block</div>
+        <div class="mv" id="ms-next-block">—</div>
+        <div class="ms">if OCEAN finds a block now</div>
+      </div>
+      <div class="met">
+        <div class="live-tag">LIVE</div>
+        <div class="ml">Est. daily earnings</div>
+        <div class="mv" id="ms-daily">—</div>
+        <div class="ms" id="ms-daily-usd">—</div>
+      </div>
+      <div class="met">
+        <div class="live-tag">LIVE</div>
+        <div class="ml">Lifetime earnings</div>
+        <div class="mv" id="ms-lifetime">—</div>
+        <div class="ms" id="ms-lifetime-usd">—</div>
+      </div>
+    </div>
+
+    <!-- Payout progress bar -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="ct">Payout progress <span class="ct-live">LIVE</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:6px;">
+        <span>Unpaid: <span id="pb-unpaid" style="color:var(--text);font-weight:500;">—</span></span>
+        <span>Threshold: 0.01048576 BTC</span>
+      </div>
+      <div class="pbg" style="height:14px;">
+        <div class="pf" id="payout-bar" style="width:0%;background:#0F6E56;height:14px;transition:width .6s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:4px;">
+        <span id="pb-pct">0%</span>
+        <span id="pb-eta">— days to threshold at current rate</span>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text3);">Shares in reward window (8-block TIDES): <span id="ms-shares" style="color:var(--text);font-weight:500;">—</span></div>
+    </div>
+
+    <!-- Hashrate table — 60s / 10min / 3hr / 24hr -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="ct">Your hashrate <span class="ct-live">LIVE · ocean.xyz</span></div>
+      <div class="g4" style="margin-bottom:0;">
+        <div class="met"><div class="ml">60 sec</div><div class="mv" id="ms-hr-60">—</div><div class="ms">instantaneous</div></div>
+        <div class="met"><div class="ml">10 min</div><div class="mv" id="ms-hr-10m">—</div><div class="ms">short term</div></div>
+        <div class="met"><div class="ml">3 hour</div><div class="mv" id="ms-hr-3h">—</div><div class="ms">medium term</div></div>
+        <div class="met"><div class="ml">24 hour</div><div class="mv" id="ms-hr-24h">—</div><div class="ms">long term avg</div></div>
+      </div>
+    </div>
+
+    <!-- DATUM status -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="ct">DATUM gateway <span class="ct-live">LIVE</span></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div id="datum-dot" style="width:12px;height:12px;border-radius:50%;background:var(--text3);flex-shrink:0;"></div>
+        <div>
+          <div id="datum-status" style="font-size:14px;font-weight:500;color:var(--text);">Checking...</div>
+          <div id="datum-sub" style="font-size:12px;color:var(--text3);margin-top:2px;">Detecting template policy from ocean.xyz/blocktemplate</div>
+        </div>
+        <div style="margin-left:auto;">
+          <span id="datum-fee-badge" class="badge bb">2% fee</span>
+        </div>
+      </div>
+
+      <!-- What DATUM means operationally -->
+      <div class="divider"></div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:500;">What this means for your operation</div>
+      <div class="sr">
+        <div class="dot dteal"></div>
+        <div class="sl2"><strong>Fee:</strong> DATUM halves your pool fee from 2% → 1%. On a $<span id="datum-daily-rev">—</span>/day operation that saves <strong>$<span id="datum-daily-saving">—</span>/day</strong> — $<span id="datum-monthly-saving">—</span>/month.</div>
+      </div>
+      <div class="sr">
+        <div class="dot dteal"></div>
+        <div class="sl2"><strong>Block template control:</strong> DATUM lets your node select which transactions go into blocks. Without it, OCEAN chooses. With it, you enforce your own transaction policy — including OP_RETURN limits and spam filtering if you run Bitcoin Knots.</div>
+      </div>
+      <div class="sr" id="datum-cta-row" style="border:none;">
+        <div class="dot da"></div>
+        <div class="sl2" id="datum-cta-text"><strong>Not detected —</strong> DATUM is available as a free service on Start9. Install it from the Start9 Marketplace to cut your fee to 1% and take control of your block templates.</div>
+      </div>
+
+      <!-- Start9 install CTA — shown when DATUM not active -->
+      <div id="datum-install-cta" style="margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border2);">
+        <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:6px;">Install DATUM on Start9</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">DATUM Gateway is a free package in the Start9 Marketplace. Once installed, point your miners at your Start9's DATUM address instead of stratum.ocean.xyz to activate the 1% fee tier and local block template construction.</div>
+        <div class="src" style="margin:0;">
+          <a class="lnk" href="https://marketplace.start9.com/packages/datum" target="_blank">Start9 Marketplace → DATUM ↗</a>
+          <a class="lnk" href="https://ocean.xyz/docs/datum" target="_blank">DATUM docs (ocean.xyz) ↗</a>
+          <a class="lnk" href="https://github.com/OCEAN-mining/DATUM" target="_blank">DATUM on GitHub ↗</a>
+        </div>
+      </div>
+      <div id="datum-active-note" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(15,110,86,0.1);border-radius:var(--radius-sm);border:1px solid rgba(15,110,86,0.3);font-size:12px;color:var(--teal-text);">
+        ✓ DATUM is active — your node is constructing block templates locally. Fee is 1%. Transaction policy is yours.
+      </div>
+    </div>
+
+    <!-- Workers table -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="ct">Workers <span class="ct-live">LIVE · ocean.xyz</span></div>
+      <div id="workers-loading" style="font-size:13px;color:var(--text3);padding:8px 0;">Loading worker data...</div>
+      <div id="workers-table-wrap" style="display:none;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="border-bottom:0.5px solid var(--border2);">
+              <th style="text-align:left;padding:7px 8px;font-weight:500;color:var(--text2);">Worker</th>
+              <th style="text-align:right;padding:7px 8px;font-weight:500;color:var(--text2);">Status</th>
+              <th style="text-align:right;padding:7px 8px;font-weight:500;color:var(--text2);">3hr hashrate</th>
+              <th style="text-align:right;padding:7px 8px;font-weight:500;color:var(--text2);">Shares %</th>
+            </tr>
+          </thead>
+          <tbody id="workers-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Payout history -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="ct">Payout history <span class="ct-live">LIVE · ocean.xyz</span></div>
+      <div id="payouts-loading" style="font-size:13px;color:var(--text3);padding:8px 0;">Loading payout history...</div>
+      <div id="payouts-table-wrap" style="display:none;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="border-bottom:0.5px solid var(--border2);">
+              <th style="text-align:left;padding:6px 8px;font-weight:500;color:var(--text2);">Date</th>
+              <th style="text-align:right;padding:6px 8px;font-weight:500;color:var(--text2);">Amount (BTC)</th>
+              <th style="text-align:right;padding:6px 8px;font-weight:500;color:var(--text2);">USD value</th>
+              <th style="text-align:right;padding:6px 8px;font-weight:500;color:var(--text2);">Block</th>
+            </tr>
+          </thead>
+          <tbody id="payouts-tbody"></tbody>
+        </table>
+      </div>
+      <div id="payouts-summary" style="display:none;margin-top:10px;font-size:12px;color:var(--text3);"></div>
+    </div>
+
+    <!-- Direct links -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="ct">Quick links</div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px;">
+        <a id="lnk-stats" href="#" target="_blank" style="display:block;padding:11px 13px;background:var(--teal-bg);border:1px solid var(--teal);border-radius:var(--radius-sm);text-decoration:none;">
+          <div style="font-size:13px;font-weight:500;color:var(--teal-text);">My Stats overview →</div>
+          <div style="font-size:11px;color:var(--teal-text);opacity:.8;margin-top:2px;">Full ocean.xyz dashboard</div>
+        </a>
+        <a id="lnk-workers" href="#" target="_blank" style="display:block;padding:11px 13px;background:var(--surface2);border:0.5px solid var(--border);border-radius:var(--radius-sm);text-decoration:none;">
+          <div style="font-size:13px;font-weight:500;color:var(--text);">Worker fleet →</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">All machines · hashrate &amp; status</div>
+        </a>
+        <a id="lnk-payouts" href="#" target="_blank" style="display:block;padding:11px 13px;background:var(--surface2);border:0.5px solid var(--border);border-radius:var(--radius-sm);text-decoration:none;">
+          <div style="font-size:13px;font-weight:500;color:var(--text);">Payout history →</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">On-chain transactions</div>
+        </a>
+        <a id="lnk-blocks" href="#" target="_blank" style="display:block;padding:11px 13px;background:var(--surface2);border:0.5px solid var(--border);border-radius:var(--radius-sm);text-decoration:none;">
+          <div style="font-size:13px;font-weight:500;color:var(--text);">Earnings per block →</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">TIDES share log</div>
+        </a>
+      </div>
+
+      <!-- Single worker lookup -->
+      <div class="divider"></div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Single worker lookup</div>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <div style="flex:1;">
+          <input type="text" id="ocean-worker-input" placeholder="worker name (after the period)"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+            style="width:100%;padding:8px 12px;font-size:13px;font-family:var(--font);
+                   background:var(--surface2);color:var(--text);border:0.5px solid var(--border2);
+                   border-radius:var(--radius-sm);outline:none;box-sizing:border-box;"
+            oninput="updateWorkerLinks()">
+        </div>
+        <button id="worker-go-btn" onclick="openWorkerStats()"
+          style="padding:8px 16px;font-size:13px;font-family:var(--font);font-weight:500;
+                 background:var(--blue-bg);color:var(--blue-text);border:1px solid var(--blue);
+                 border-radius:var(--radius-sm);cursor:pointer;white-space:nowrap;opacity:0.4;pointer-events:none;">
+          Open →
+        </button>
+      </div>
+      <div id="worker-msg" style="font-size:11px;color:var(--text3);margin-top:5px;min-height:14px;"></div>
+      <div id="worker-links-panel" style="display:none;margin-top:10px;">
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;">
+          <a id="lnk-worker-stats" href="#" target="_blank" style="display:block;padding:9px 12px;background:var(--blue-bg);border:1px solid var(--blue);border-radius:var(--radius-sm);text-decoration:none;font-size:12px;font-weight:500;color:var(--blue-text);">Worker stats →</a>
+          <a id="lnk-worker-payouts" href="#" target="_blank" style="display:block;padding:9px 12px;background:var(--surface2);border:0.5px solid var(--border);border-radius:var(--radius-sm);text-decoration:none;font-size:12px;color:var(--text);">Worker payouts →</a>
+          <a id="lnk-worker-hashrate" href="#" target="_blank" style="display:block;padding:9px 12px;background:var(--surface2);border:0.5px solid var(--border);border-radius:var(--radius-sm);text-decoration:none;font-size:12px;color:var(--text);">Hashrate chart →</a>
+          <a id="lnk-worker-blocks" href="#" target="_blank" style="display:block;padding:9px 12px;background:var(--surface2);border:0.5px solid var(--border);border-radius:var(--radius-sm);text-decoration:none;font-size:12px;color:var(--text);">Block earnings →</a>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px;margin-top:8px;">
+          <div style="font-size:11px;color:var(--text3);">Full worker identifier (use as Username in miner config)</div>
+          <code id="worker-full-id" style="font-size:12px;color:var(--blue-text);word-break:break-all;"></code>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <code id="ocean-addr-display" style="font-size:12px;color:var(--teal-text);background:var(--teal-bg);padding:5px 10px;border-radius:4px;flex:1;word-break:break-all;"></code>
+        <button onclick="clearOceanAddress()" style="font-size:12px;font-family:var(--font);padding:5px 12px;background:transparent;border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text3);cursor:pointer;white-space:nowrap;">Clear</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CHECKLIST moves to LIVE page -->
+
+</div><!-- /page-mystats -->
+
+<div class="page" id="page-hashprice">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:4px;">
+    <div class="sec-head" style="margin:0;">Bitcoin Hashprice Index</div>
+    <div style="display:flex;gap:5px;">
+      <button class="hp-sb hp-sb-on" data-span="7"   onclick="hpSetSpan(7)">7D</button>
+      <button class="hp-sb"          data-span="30"  onclick="hpSetSpan(30)">1M</button>
+      <button class="hp-sb"          data-span="90"  onclick="hpSetSpan(90)">3M</button>
+      <button class="hp-sb"          data-span="365" onclick="hpSetSpan(365)">1Y</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:18px;">
+      <div>
+        <div class="ml">Current hashprice</div>
+        <div id="hp-live-price" style="font-size:36px;font-weight:500;line-height:1.1;color:var(--text);">—</div>
+        <div class="ms">USD / TH/s / day</div>
+      </div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+        <div><div class="ml">BTC price</div><div class="mv" id="hp-btc-val">—</div></div>
+        <div><div class="ml">Network hashrate</div><div class="mv" id="hp-hr-val">—</div></div>
+        <div><div class="ml">Period change</div><div class="mv" id="hp-chg-val">—</div></div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface2);border:0.5px solid var(--border2);border-left:3px solid var(--amber-text, #BA7517);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--text3);display:flex;gap:8px;align-items:flex-start;">
+      <span style="color:#BA7517;flex-shrink:0;font-size:13px;">ⓘ</span>
+      <span><strong style="color:var(--text2);">Chart methodology:</strong> Historical network hashrate × today's live BTC price. This shows the <em>hashrate-driven</em> component of hashprice — how revenue per TH would have varied if BTC price were constant. Actual past hashprice also reflected different BTC prices. For fully historical hashprice visit <a href="https://hashrateindex.com" target="_blank" style="color:var(--blue-text, #378ADD);">hashrateindex.com ↗</a></span>
+    </div>
+
+    <div style="display:flex;gap:18px;font-size:12px;color:var(--text3);margin-bottom:8px;flex-wrap:wrap;">
+      <span style="display:flex;align-items:center;gap:6px;"><span style="width:20px;height:2px;background:#0F6E56;display:inline-block;border-radius:1px;"></span>Hashprice (USD/TH/day)</span>
+      <span style="display:flex;align-items:center;gap:6px;"><span style="width:20px;height:0;display:inline-block;border-top:2px dashed #BA7517;"></span>Your cost/TH/day</span>
+    </div>
+
+    <div id="hp-loading" style="display:flex;align-items:center;justify-content:center;height:240px;gap:8px;font-size:13px;color:var(--text3);">
+      <span style="width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--text3);border-radius:50%;display:inline-block;animation:spin .8s linear infinite;"></span>
+      Building chart from network data…
+    </div>
+    <div id="hp-chart-wrap" style="display:none;position:relative;width:100%;height:240px;">
+      <canvas id="hp-canvas"></canvas>
+    </div>
+
+  <div class="sec-head">Profitability at current hashprice</div>
+  <div class="card">
+    <div class="g3" style="margin-bottom:16px;">
+      <div class="met">
+        <div class="ml">Hashprice — revenue</div>
+        <div class="mv" id="hp2-hashprice">—</div>
+        <div class="ms">USD / TH / day</div>
+      </div>
+      <div class="met">
+        <div class="ml">Your cost / TH / day</div>
+        <div class="mv" id="hp2-cost-display">$0.0800/TH · $80.00/PH</div>
+        <div class="ms">adjust slider below</div>
+      </div>
+      <div class="met">
+        <div class="ml">Margin</div>
+        <div class="mv" id="hp2-margin">—</div>
+        <div class="ms" id="hp2-verdict" style="font-weight:500;">—</div>
+      </div>
+    </div>
+    <div class="slrow">
+      <label>Your cost ($/TH/day)</label>
+      <input type="range" id="hp2-cost-input" min="0.005" max="2.0" step="0.005" value="0.08"
+        oninput="
+          var v=parseFloat(this.value);
+          var tStr=v.toFixed(4);
+          var phStr=(v*1000).toFixed(2);
+          document.getElementById('hp2-cost-display').textContent='$'+tStr+'/TH · $'+phStr+'/PH';
+          document.getElementById('hp2-cost-slv').textContent='$'+tStr;
+          hpUpdateMargin();hpDrawChart();
+        ">
+      <span class="slv" id="hp2-cost-slv">$0.0800</span>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px;">
+      Typical cloud rental: $0.05–$0.15/TH/day · Hosted ASIC: $0.08–$0.25/TH/day · Expensive contracts: up to $2.00/TH/day
+    </div>
+  </div>
+
+  <div class="sec-head">About hashprice</div>
+  <div class="card">
+    <div class="sr"><div class="dot dteal"></div><div class="sl2"><strong>What it means:</strong> Hashprice is the expected USD revenue per terahash per day. When hashprice exceeds your all-in cost per TH/day, every hash is profitable.</div></div>
+    <div class="sr"><div class="dot db"></div><div class="sl2" style="font-family:monospace;font-size:12px;word-break:break-word;">Hashprice = (3.125 + avg_fees_BTC) × BTC_price × 144 ÷ network_hashrate_TH</div></div>
+    <div class="sr"><div class="dot db"></div><div class="sl2"><strong>Why it moves:</strong> Rises when BTC price rises or hashrate falls. Falls when difficulty climbs or BTC price drops. It is the miner's equivalent of a spot commodity price.</div></div>
+    <div class="sr" style="border:none;"><div class="dot dg"></div><div class="sl2"><strong>Data:</strong> All from the existing mempool.space feed — no additional API calls. Historical chart uses the 2-year hashrate data already loaded for the Hash Ribbon.</div></div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);margin-top:10px;padding-bottom:40px;">
+    <span class="live-dot"></span><span id="hp-status">Waiting for network data…</span>
+  </div>
+
+</div><!-- /page-hashprice -->
+
+
+</main>
+
+<footer>
+  BTC Hashrate Rental · OCEAN Pool Dashboard · Live data from mempool.space API (free, no key required)<br>
+  OCEAN stats current as of Apr 23, 2026 — verify at ocean.xyz/stats · Refreshes automatically every 60 seconds · Not financial advice
+</footer>
+
+<script src="chart.umd.js"></script>
+
+<script type="module" src="js/init.js"></script>
+</body>
+</html>
