@@ -3,10 +3,10 @@ title: "BTC Mining Dashboard"
 version: 1.0.0.0
 release-notes: "Live Bitcoin mining dashboard for OCEAN pool miners."
 license: mit
-wrapper-repo: "https://github.com/yourusername/btc-dashboard-startos"
-upstream-repo: "https://github.com/yourusername/btc-dashboard-startos"
-support-site: "https://github.com/yourusername/btc-dashboard-startos/issues"
-marketing-site: "https://github.com/yourusername/btc-dashboard-startos"
+wrapper-repo: "https://github.com/Dazy-hub/BTC-Mining-Dashboard"
+upstream-repo: "https://github.com/Dazy-hub/BTC-Mining-Dashboard"
+support-site: "https://github.com/Dazy-hub/BTC-Mining-Dashboard/issues"
+marketing-site: "https://github.com/Dazy-hub/BTC-Mining-Dashboard"
 build: ["make"]
 min-os-version: "0.3.5"
 
