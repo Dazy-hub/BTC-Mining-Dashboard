@@ -1,5 +1,5 @@
 // calc.js — profitability calculator, scenario loader, combined signal, timing signals
-import { state, scenarios } from './state.js';
+import { state } from './state.js';
 
 export function updateTimingSignals(pct, avgMin, etaStr, daysLeft) {
   const sign = pct >= 0 ? '+' : '';
@@ -107,27 +107,7 @@ export function updateCombinedSignal() {
 }
 
 export function loadScenario(key, btn) {
-  // scenarios are data objects — apply overrides to sliders then recalc
-  if (key === 'live') {
-    // restore live values from state
-    const p = document.getElementById('sl-price');
-    const n = document.getElementById('sl-net');
-    const f = document.getElementById('sl-fee');
-    if (p) { p.value = state.liveBTCPrice; }
-    if (n) { n.value = state.liveNetHashEH; }
-    if (f) { f.value = 0; }
-  } else {
-    const s = scenarios[key];
-    if (!s) { console.warn('loadScenario: unknown key', key); return; }
-    if (s.btc      != null) { const el = document.getElementById('sl-price'); if (el) el.value = s.btc; }
-    if (s.netEH    != null) { const el = document.getElementById('sl-net');   if (el) el.value = s.netEH; }
-    if (s.diffPct  != null) {
-      const base = parseFloat(document.getElementById('sl-net').value) || state.liveNetHashEH;
-      const el = document.getElementById('sl-net');
-      if (el) el.value = (base * (1 + s.diffPct / 100)).toFixed(0);
-    }
-    if (s.fee      != null) { const el = document.getElementById('sl-fee');   if (el) el.value = s.fee; }
-  }
+  scenarios[key]();
   document.querySelectorAll('.scen-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   calc();

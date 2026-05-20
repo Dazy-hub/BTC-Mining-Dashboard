@@ -1,7 +1,7 @@
 id: btc-dashboard
 title: "BTC Mining Dashboard"
-version: 1.0.1.0
-release-notes: "Fix ES module wiring: window.* globals, scenario loader, chart canvas IDs, missing imports."
+version: 1.0.0.0
+release-notes: "Live Bitcoin mining dashboard for OCEAN pool miners."
 license: mit
 wrapper-repo: "https://github.com/Dazy-hub/BTC-Mining-Dashboard"
 upstream-repo: "https://github.com/Dazy-hub/BTC-Mining-Dashboard"

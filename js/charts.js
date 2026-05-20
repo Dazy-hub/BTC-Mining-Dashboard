@@ -1,5 +1,5 @@
 // charts.js — Hash chart (3-day network hashrate) and Hash Ribbon
-import { state, ON_START9 } from './state.js';
+import { state } from './state.js';
 
 export function drawHashChart(labels, values) {
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -8,7 +8,7 @@ export function drawHashChart(labels, values) {
   const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
   const textColor = isDark ? '#6a6a66' : '#9a9a96';
 
-  const canvas = document.getElementById('hashChart');
+  const canvas = document.getElementById('state.hashChart');
   if (state.hashChart) { state.hashChart.destroy(); state.hashChart = null; }
 
   state.hashChart = new Chart(canvas, {
@@ -148,7 +148,7 @@ export function drawHashRibbon() {
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const gridClr = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
   const txtClr  = isDark ? '#6a6a66' : '#9a9a96';
-  const canvas = document.getElementById('hashRibbonChart');
+  const canvas = document.getElementById('state.hashRibbonChart');
   if (!canvas) return;
   if (state.hashRibbonChart) { state.hashRibbonChart.destroy(); state.hashRibbonChart = null; }
   state.hashRibbonChart = new Chart(canvas, {
