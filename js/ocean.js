@@ -205,7 +205,7 @@ export function drawOceanHashChart(range) {
 
   // 30d trend
   const thirtyDaysAgo = now - 30*24*3600;
-  const oldEntry = [...state.oceanHashData].reverse().find(d => d.timestamp <= thirtyDaysAgo);
+  const oldEntry = [...oceanHashData].reverse().find(d => d.timestamp <= thirtyDaysAgo);
   let trendStr = '—', trendColor = 'var(--text)';
   if (oldEntry) {
     const chg = ((currentEH - oldEntry.avgHashrate/1e18) / (oldEntry.avgHashrate/1e18)) * 100;

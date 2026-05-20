@@ -12,10 +12,8 @@ RUN chmod +x /usr/local/bin/docker_entrypoint.sh
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Dashboard assets
-COPY index.html    /usr/share/nginx/html/index.html
-COPY chart.umd.js  /usr/share/nginx/html/chart.umd.js
-COPY css/          /usr/share/nginx/html/css/
-COPY js/           /usr/share/nginx/html/js/
+COPY index.html   /usr/share/nginx/html/index.html
+COPY chart.umd.js /usr/share/nginx/html/chart.umd.js
 
 EXPOSE 80
 
