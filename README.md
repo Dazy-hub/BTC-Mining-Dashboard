@@ -1,4 +1,4 @@
-BTC Mining Dashboard
+BTC Mining Dashboard - StartOS 0.3.5.1
 
 A real-time Bitcoin mining dashboard for pool miners and renting hash.
 
