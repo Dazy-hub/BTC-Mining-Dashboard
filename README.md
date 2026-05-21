@@ -31,4 +31,4 @@
 
 <h4>Currently supported:</h4>
 
-<li>✅ x86_64 (Intel/AMD 64-bit)</li>
+<li>✅ On StartOS (primary): a Start9 server running StartOS 0.3.5.1</li>
